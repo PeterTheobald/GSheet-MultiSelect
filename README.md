@@ -11,4 +11,4 @@ The default values list display separator is "value1, value2" but
 can be changed by adding ",Sep=" to the MultiSelect cell, eg: "MultiSelect:ShowInCell,Sep= | "
 The special values '' (blank) 'none' and 'all' will replace all previously selected values.
 
-Installation: Google Sheet, click on Extensions > Apps Script, paste the script
+Installation: Google Sheet, click on Extensions > Apps Script, paste the script, click small disk save icon
