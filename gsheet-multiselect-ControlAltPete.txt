@@ -1,0 +1,97 @@
+/**
+ * @OnlyCurrentDoc
+ */
+
+function onEdit(e) {
+  multiSelect(e)
+}
+
+// gsheets-multiselect - Google Sheets MultiSelect - @ControlAltPete 2023
+//
+// Allow cells with data-validation to have multi-select
+// The cell should have data validation from a range and 
+// the cell immediately above that validation range must contain:
+// MultiSelect:ShowInCell or MultiSelect:ShowRight or MultiSelect:ShowBelow
+// The default values list display separator is "value1, value2" but
+// can be changed by adding ",Sep=" to the MultiSelect cell, eg: "MultiSelect:ShowInCell,Sep= | "
+// The special values '' (blank) 'none' and 'all' will replace all previously selected values.
+
+/ Installation: Google Sheet, click on Extensions > Apps Script, paste this
+
+
+function multiSelect(e) {
+  var sheet = e.range.getSheet();
+  var modifiedCell = e.range;
+  
+  // Check if the modified cell has data validation
+  var validationRule = modifiedCell.getDataValidation();
+  if (!validationRule) return; 
+  
+  var criteriaType = validationRule.getCriteriaType();
+  if (criteriaType !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) return;
+
+  var validationRange = validationRule.getCriteriaValues()[0];
+  var activationCell = sheet.getRange(validationRange.getRow() - 1, validationRange.getColumn());
+
+  // Check if activation cell begins with 'MultiSelect'
+  if (!activationCell.getValue().toLowerCase().startsWith('multiselect')) return;
+
+  // Extract custom separator, defaulting to ", " if not specified
+  var separator = ", ";
+  if (activationCell.getValue().includes(",Sep=")) {
+    separator = activationCell.getValue().split(",Sep=")[1];
+  }
+
+  // Get the value of the modified cell and the value just entered
+  var currentValues = modifiedCell.getValue().split(',').map(value => value.trim());
+  var newValue = e.value;
+  var lcNewValue = newValue.toLowerCase();
+
+  // Modify the new list of values
+  if (newValue === '' || lcNewValue === 'all' || lcNewValue === 'none') {
+    currentValues = [newValue];  // If "" or "all" or "none" is selected, clear other choices
+  } else {
+    // If "all" or "none" exists in the current values, remove them regardless of case
+    currentValues = currentValues.filter(value => {
+        var lowerCaseValue = value.toLowerCase();
+        return lowerCaseValue !== 'all' && lowerCaseValue !== 'none';
+    });
+    // If the value is already present, it means user wants to deselect it. So, we remove it.
+    var index = currentValues.indexOf(newValue);
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(newValue);
+    }
+  }
+
+  // Join all values to get the final value
+  var finalValue = currentValues.join(separator);
+
+  // Show the result in the specified location based on 'ShowInCell', 'ShowRight' or 'ShowBelow'
+  if (activationCell.getValue().includes('ShowInCell')) {
+    // Create a copy of the existing data validation but set to show warning
+    // instead of Reject-input
+    var newValidationRule = validationRule.copy().setAllowInvalid(true).setHelpText("Multiple selections are allowed.").build();
+    modifiedCell.setDataValidation(newValidationRule);
+    modifiedCell.setValue(finalValue);
+  } else if (activationCell.getValue().includes('ShowRight')) {
+    modifiedCell.offset(0, 1).setValue(finalValue);
+  } else if (activationCell.getValue().includes('ShowBelow')) {
+    modifiedCell.offset(1, 0).setValue(finalValue);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
