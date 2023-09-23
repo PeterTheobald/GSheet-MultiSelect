@@ -24,3 +24,7 @@ If multiple input cells share the same data validation range and have different 
 only one of them will have the warning triangle hidden at a time.
 
 Installation: Google Sheet, click on Extensions > Apps Script, paste this
+
+![demo image1](demoimage1.png?raw=true "Demo image1")
+![demo image2](demoimage2.png?raw=true "Demo image2")
+![demo image3](demoimage3.png?raw=true "Demo image3")
