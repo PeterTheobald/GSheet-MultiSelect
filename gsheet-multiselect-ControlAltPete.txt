@@ -3,61 +3,88 @@
  */
 
 function onEdit(e) {
-  multiSelect(e)
+  multiSelect(e);
 }
 
 // gsheets-multiselect - Google Sheets MultiSelect - @ControlAltPete 2023
 //
-// Allow cells with data-validation to have multi-select
+// Allow cells with data-validation to have multi-select.
 // The cell should have data validation from a range and 
 // the cell immediately above that validation range must contain:
 // MultiSelect:ShowInCell or MultiSelect:ShowRight or MultiSelect:ShowBelow
-// The default values list display separator is "value1, value2" but
-// can be changed by adding ",Sep=" to the MultiSelect cell, eg: "MultiSelect:ShowInCell,Sep= | "
-// The special values '' (blank) 'none' and 'all' will replace all previously selected values.
 
-// Installation: Google Sheet, click on Extensions > Apps Script, paste this, click small disk save icon
+// The default item separator is "value1, value2" but this can be changed
+// by adding ",Sep=" to the MultiSelect cell, eg: MultiSelect:ShowInCell,Sep=|
+// If the Sep has a comma or spaces you need quotes, eg: MultiSelect:ShowInCell,Sep=" , "
+//
+// The special values '' (blank) 'None' and 'All' will replace all previously selected values.
+//
+// Google Sheets will show a warning triangle when multiple items are selected,
+// This warning shows for ShowInCell but not for ShowRight or ShowBelow.
+// To hide this warning, add ",HideWarning" to the MultiSelect cell, eg: "MultiSelect:ShowInCell,HideWarning"
+// but be aware this will add a new dropdown option with all the current selected items
+// ie: the dropdown: 'Apple' 'Banana' 'Cherry' can become 'Apple' 'Banana' 'Cherry' 'Apple,Banana'
+// A limitation of HideWarning is it can only hide the warning for ONE input cell
+// If multiple input cells share the same data validation range and have different multi-select choices
+// only one of them will have the warning triangle hidden at a time.
+
+// Installation: Google Sheet, click on Extensions > Apps Script, paste this
 
 
 function multiSelect(e) {
-  var sheet = e.range.getSheet();
-  var modifiedCell = e.range;
+  const sheet = e.range.getSheet();
+  const modifiedCell = e.range;
   
   // Check if the modified cell has data validation
-  var validationRule = modifiedCell.getDataValidation();
+  const validationRule = modifiedCell.getDataValidation();
   if (!validationRule) return; 
   
-  var criteriaType = validationRule.getCriteriaType();
+  const criteriaType = validationRule.getCriteriaType();
   if (criteriaType !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) return;
 
-  var validationRange = validationRule.getCriteriaValues()[0];
-  var activationCell = sheet.getRange(validationRange.getRow() - 1, validationRange.getColumn());
+  let validationRange = validationRule.getCriteriaValues()[0];
+  const activationCell = sheet.getRange(validationRange.getRow() - 1, validationRange.getColumn());
+  const activationValue = activationCell.getValue();
 
   // Check if activation cell begins with 'MultiSelect'
-  if (!activationCell.getValue().toLowerCase().startsWith('multiselect')) return;
+  if (!activationValue.toLowerCase().startsWith('multiselect')) return;
 
   // Extract custom separator, defaulting to ", " if not specified
-  var separator = ", ";
-  if (activationCell.getValue().includes(",Sep=")) {
-    separator = activationCell.getValue().split(",Sep=")[1];
+  let separator = ", ";
+  const regex = new RegExp(`Sep=("[^"]*"|[^,\\s]+)`);
+  const match = activationValue.match(regex);
+  if (match) {
+    separator = match[1].replace(/^"|"$/g, ''); // remove any quotes
   }
-
-  // Get the value of the modified cell and the value just entered
-  var currentValues = modifiedCell.getValue().split(',').map(value => value.trim());
-  var newValue = e.value;
-  var lcNewValue = newValue.toLowerCase();
+  let currentValues;
+  let showWhere;
+  switch (true) { // pattern match
+    case activationValue.toLowerCase().includes('showright'):
+      showWhere='right';
+      currentValues = modifiedCell.offset(0, 1).getValue().split(separator).map(value => value.trim());
+      break;
+    case activationValue.toLowerCase().includes('showbelow'):
+      showWhere='below';
+      currentValues = modifiedCell.offset(1, 0).getValue().split(separator).map(value => value.trim());
+      break;
+    case activationValue.toLowerCase().includes('showincell'):
+    default:
+      showWhere='cell';
+      currentValues = e.oldValue.split(separator).map(value => value.trim());
+  }
+  const newValue = e.value;
 
   // Modify the new list of values
-  if (newValue === '' || lcNewValue === 'all' || lcNewValue === 'none') {
+  if (newValue === '' || newValue.toLowerCase() === 'all' || newValue.toLowerCase() === 'none') {
     currentValues = [newValue];  // If "" or "all" or "none" is selected, clear other choices
   } else {
     // If "all" or "none" exists in the current values, remove them regardless of case
     currentValues = currentValues.filter(value => {
-        var lowerCaseValue = value.toLowerCase();
-        return lowerCaseValue !== 'all' && lowerCaseValue !== 'none';
+        const lowerCaseValue = value.toLowerCase();
+        return value !== '' && lowerCaseValue !== 'all' && lowerCaseValue !== 'none';
     });
     // If the value is already present, it means user wants to deselect it. So, we remove it.
-    var index = currentValues.indexOf(newValue);
+    const index = currentValues.indexOf(newValue);
     if (index > -1) {
       currentValues.splice(index, 1);
     } else {
@@ -66,32 +93,51 @@ function multiSelect(e) {
   }
 
   // Join all values to get the final value
-  var finalValue = currentValues.join(separator);
+  const finalValue = currentValues.join(separator);
 
   // Show the result in the specified location based on 'ShowInCell', 'ShowRight' or 'ShowBelow'
-  if (activationCell.getValue().includes('ShowInCell')) {
-    // Create a copy of the existing data validation but set to show warning
-    // instead of Reject-input
-    var newValidationRule = validationRule.copy().setAllowInvalid(true).setHelpText("Multiple selections are allowed.").build();
-    modifiedCell.setDataValidation(newValidationRule);
+  switch (showWhere) {
+  case 'cell':
+    // ShowInCell is the most complicated, because we need to alter the data validation
+    // validation must be set to Show-Warning instead of the default Reject-Input
+    let newValidationRule = null;
+    if (!validationRule.getAllowInvalid()) {
+      newValidationRule = validationRule.copy().setAllowInvalid(true).setHelpText("Multiple selections are allowed.");
+    }
+    if (activationValue.toLowerCase().includes('hidewarning')) { // add extra data validation item to hide warnings
+      let hideWarningCell = sheet.getRange(validationRange.getLastRow(), validationRange.getColumn());
+      if (currentValues.length>1) { // selection is a MultiSelect, must hide warning
+        if (hideWarningCell.getValue() !== '' && !hideWarningCell.getValue().includes(separator)) {
+          // the last validation cell isn't a hideWarningCell, create one
+          validationRange = validationRange.offset( 0, 0, validationRange.getNumRows()+1);
+          //validationRange = sheet.getRange(validationRange.getRow(), validationRange.getColumn(), validationRange.getLastRow() - validationRange.getRow() + 2, validationRange.getNumColumns());
+          if (newValidationRule === null) {
+            newValidationRule = validationRule.copy().requireValueInRange(validationRange);
+          } else {
+            newValidationRule = newValidationRule.requireValueInRange(validationRange);
+          }
+          hideWarningCell = sheet.getRange(validationRange.getLastRow(), validationRange.getColumn());          
+        }
+        hideWarningCell.setValue( finalValue);
+      } else { // selection is a single select, blank hideWarning item if it exists
+        if (hideWarningCell.getValue().includes(separator)) {
+          hideWarningCell.setValue('');
+        }
+      }
+    }
+    if (newValidationRule !== null) {
+      modifiedCell.setDataValidation(newValidationRule.build());
+    }
     modifiedCell.setValue(finalValue);
-  } else if (activationCell.getValue().includes('ShowRight')) {
+    break;
+  case 'right':
     modifiedCell.offset(0, 1).setValue(finalValue);
-  } else if (activationCell.getValue().includes('ShowBelow')) {
+    modifiedCell.setValue('');
+    break;
+  case 'below':
     modifiedCell.offset(1, 0).setValue(finalValue);
+    modifiedCell.setValue('');
+    break;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
