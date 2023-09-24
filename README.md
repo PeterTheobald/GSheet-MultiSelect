@@ -1,5 +1,5 @@
 # GSheet-MultiSelect
-Script to add Google Sheets MultiSelect fields
+Script to add Google Sheets MultiSelect fields from dropdown selections.
 
 gsheets-multiselect - Google Sheets MultiSelect - @ControlAltPete 2023
 
