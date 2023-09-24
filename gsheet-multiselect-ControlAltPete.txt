@@ -43,8 +43,7 @@ function multiSelect(e) {
   if (criteriaType !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) return;
 
   let validationRange = validationRule.getCriteriaValues()[0];
-  const activationCell = sheet.getRange(validationRange.getRow() - 1, validationRange.getColumn());
-  const activationValue = activationCell.getValue();
+  const activationValue = validationRange.offset(-1, 0).getValue();
 
   // Check if activation cell begins with 'MultiSelect'
   if (!activationValue.toLowerCase().startsWith('multiselect')) return;
