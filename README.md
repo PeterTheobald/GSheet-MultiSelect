@@ -25,6 +25,7 @@ only one of them will have the warning triangle hidden at a time.
 
 I have a demo sheet you can copy and play with here: 
    https://docs.google.com/spreadsheets/d/1Uu2p6xP_oG3iE3XffpXBxAYsPyRFdvO8aDVaWSOjDMM/edit#gid=0
+   
 Installation: Google Sheet, click on Extensions > Apps Script, paste this.
 You may need to allow some permissions when it runs.
 
