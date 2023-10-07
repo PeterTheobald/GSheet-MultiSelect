@@ -104,21 +104,31 @@ function multiSelect(e) {
       newValidationRule = validationRule.copy().setAllowInvalid(true).setHelpText("Multiple selections are allowed.");
     }
     if (activationValue.toLowerCase().includes('hidewarning')) { // add extra data validation item to hide warnings
-      let hideWarningCell = sheet.getRange(validationRange.getLastRow(), validationRange.getColumn());
-      if (currentValues.length>1) { // selection is a MultiSelect, must hide warning
+      let hideWarningCell;
+      let validationSheet = validationRange.getSheet();
+      let validationHeight = validationRange.getHeight();
+      if (validationRange.getRow() + validationHeight > validationSheet.getMaxRows()) {
+        // infinite data validation range, use the last non-empty cell as hideWarningCell
+        hideWarningCell = getLastNonEmptyCell(validationRange);
+      } else {
+        // finite data validation range, use the empty cell below the range as hideWarningCell
+        hideWarningCell = validationRange.offset(validationHeight, 0, 1, 1);
+      }
+      if (currentValues.length>1) { // new selection is a MultiSelect, must hide warning
         if (hideWarningCell.getValue() !== '' && !hideWarningCell.getValue().includes(separator)) {
-          // the last validation cell isn't a hideWarningCell, create one
+          // the last validation cell isn't a hideWarningCell, use the empty cell below
+          hideWarningCell = hideWarningCell.offset(1,0);
+          // and extend the data validation range
           validationRange = validationRange.offset( 0, 0, validationRange.getNumRows()+1);
-          //validationRange = sheet.getRange(validationRange.getRow(), validationRange.getColumn(), validationRange.getLastRow() - validationRange.getRow() + 2, validationRange.getNumColumns());
           if (newValidationRule === null) {
             newValidationRule = validationRule.copy().requireValueInRange(validationRange);
           } else {
             newValidationRule = newValidationRule.requireValueInRange(validationRange);
           }
-          hideWarningCell = sheet.getRange(validationRange.getLastRow(), validationRange.getColumn());          
         }
         hideWarningCell.setValue( finalValue);
-      } else { // selection is a single select, blank hideWarning item if it exists
+      } else {
+        // selection is a single select, clear hideWarningCell if it exists
         if (hideWarningCell.getValue().includes(separator)) {
           hideWarningCell.setValue('');
         }
@@ -140,3 +150,15 @@ function multiSelect(e) {
   }
 }
 
+// Helper function to get the last non-empty cell
+function getLastNonEmptyCell(range) {
+  var values = range.getValues();
+  var lastCell = null;
+  for (var i = 0; i < values.length; i++) {
+    if (values[i][0] === '') {
+      break;
+    }
+    lastCell = range.offset(i, 0, 1, 1);
+  }
+  return lastCell;
+}
