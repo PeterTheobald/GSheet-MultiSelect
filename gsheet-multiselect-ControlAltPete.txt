@@ -6,7 +6,7 @@ function onEdit(e) {
   multiSelect(e);
 }
 
-// gsheets-multiselect - Google Sheets MultiSelect - @ControlAltPete 2023
+// gsheets-multiselect v1.1.4 - Google Sheets MultiSelect - @ControlAltPete 2023
 //
 // Allow cells with data-validation to have multi-select.
 // The cell should have data validation from a range and 
@@ -107,23 +107,28 @@ function multiSelect(e) {
       let hideWarningCell;
       let validationSheet = validationRange.getSheet();
       let validationHeight = validationRange.getHeight();
+      let infiniteRange;
       if (validationRange.getRow() + validationHeight > validationSheet.getMaxRows()) {
-        // infinite data validation range, use the last non-empty cell as hideWarningCell
+        // infinite data validation range, hideWarningCell is the last non-empty cell (or below the range)
         hideWarningCell = getLastNonEmptyCell(validationRange);
+        infiniteRange=true;
       } else {
-        // finite data validation range, use the empty cell below the range as hideWarningCell
-        hideWarningCell = validationRange.offset(validationHeight, 0, 1, 1);
+        // finite data validation range, hideWarningCell is the last cell in the range, (or below the range)
+        hideWarningCell = validationRange.offset(validationHeight-1, 0, 1, 1);
+        infiniteRange=false;
       }
       if (currentValues.length>1) { // new selection is a MultiSelect, must hide warning
         if (hideWarningCell.getValue() !== '' && !hideWarningCell.getValue().includes(separator)) {
-          // the last validation cell isn't a hideWarningCell, use the empty cell below
+          // the hideWarningCell cell isn't a hideWarningCell, move to the empty cell below
           hideWarningCell = hideWarningCell.offset(1,0);
-          // and extend the data validation range
-          validationRange = validationRange.offset( 0, 0, validationRange.getNumRows()+1);
-          if (newValidationRule === null) {
-            newValidationRule = validationRule.copy().requireValueInRange(validationRange);
-          } else {
-            newValidationRule = newValidationRule.requireValueInRange(validationRange);
+          if (!infiniteRange) {
+            // and extend the data validation range
+            validationRange = validationRange.offset( 0, 0, validationRange.getNumRows()+1);
+            if (newValidationRule === null) {
+              newValidationRule = validationRule.copy().requireValueInRange(validationRange);
+            } else {
+              newValidationRule = newValidationRule.requireValueInRange(validationRange);
+            }
           }
         }
         hideWarningCell.setValue( finalValue);
