@@ -23,7 +23,10 @@ A limitation of HideWarning is it can only hide the warning for ONE input cell
 If multiple input cells share the same data validation range and have different multi-select choices
 only one of them will have the warning triangle hidden at a time.
 
-Installation: Google Sheet, click on Extensions > Apps Script, paste this
+I have a demo sheet you can copy and play with here: 
+   https://docs.google.com/spreadsheets/d/1Uu2p6xP_oG3iE3XffpXBxAYsPyRFdvO8aDVaWSOjDMM/edit#gid=0
+Installation: Google Sheet, click on Extensions > Apps Script, paste this.
+You may need to allow some permissions when it runs.
 
 ![demo image1](demo-image1.png?raw=true "Demo image1")
 ![demo image2](demo-image2.png?raw=true "Demo image2")
