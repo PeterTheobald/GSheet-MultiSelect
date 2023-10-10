@@ -13,9 +13,10 @@ function onEdit(e) {
 // the cell immediately above that validation range must contain:
 // MultiSelect:ShowInCell or MultiSelect:ShowRight or MultiSelect:ShowBelow
 
-// The default item separator is "value1, value2" but this can be changed
+// The default item separator is comma "value1, value2" but this can be changed
 // by adding ",Sep=" to the MultiSelect cell, eg: MultiSelect:ShowInCell,Sep=|
 // If the Sep has a comma or spaces you need quotes, eg: MultiSelect:ShowInCell,Sep=" , "
+// Newline in quotes is a valid separator to have each item on its own line.
 //
 // The special values '' (blank) 'None' and 'All' will replace all previously selected values.
 //
@@ -26,7 +27,11 @@ function onEdit(e) {
 // ie: the dropdown: 'Apple' 'Banana' 'Cherry' can become 'Apple' 'Banana' 'Cherry' 'Apple,Banana'
 // A limitation of HideWarning is it can only hide the warning for ONE input cell
 // If multiple input cells share the same data validation range and have different multi-select choices
-// only one of them will have the warning triangle hidden at a time.
+// only one of them will have the warning triangle suppressed at a time.
+//
+// Note: Google Sheets ignores blanks in the data validation range. GSheet-Multiselect with hideWarning
+//       will add the composite entry at the end of the range, possibly below blank cells. This may look
+//       odd but will work fine.
 
 // Installation: Google Sheet, click on Extensions > Apps Script, paste this
 
